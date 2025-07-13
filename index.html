@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rapidité cliker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: linear-gradient(135deg, #0066ff 0%, #ff0000 100%);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            overflow: hidden;
+        }
+        
+        .game-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            max-width: 600px;
+            margin: 0 auto;
+            transition: all 0.5s ease;
+        }
+        
+        .game-container.game-mode {
+            transform: scale(0.8);
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .target {
+            width: 100px;
+            height: 100px;
+            background: radial-gradient(circle, #ff6b6b, #ee5a24);
+            border-radius: 50%;
+            margin: 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: fixed;
+            z-index: 9999;
+            animation: pulse 2s infinite;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        
+        /* Formes différentes */
+        .target.circle {
+            border-radius: 50%;
+            background: radial-gradient(circle, #ff6b6b, #ee5a24);
+        }
+        
+        .target.square {
+            border-radius: 0;
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+        }
+        
+        .target.triangle {
+            border-radius: 0;
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+        }
+        
+        .target.star {
+            border-radius: 0;
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+        }
+        
+        .target.diamond {
+            border-radius: 0;
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+        }
+        
+        .target.hexagon {
+            border-radius: 0;
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+        }
+        
+        .target:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(255, 107, 107, 0.6);
+        }
+        
+        .target:active {
+            transform: scale(0.9);
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .score {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 20px 0;
+        }
+        
+        .time-selector {
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .time-selector label {
+            font-size: 18px;
+            color: #2c3e50;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .time-select {
+            padding: 10px 15px;
+            font-size: 16px;
+            border: 2px solid #3498db;
+            border-radius: 25px;
+            background: white;
+            color: #2c3e50;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 150px;
+        }
+        
+        .time-select:hover {
+            border-color: #2980b9;
+            box-shadow: 0 0 10px rgba(52, 152, 219, 0.3);
+        }
+        
+        .time-select:focus {
+            outline: none;
+            border-color: #2980b9;
+            box-shadow: 0 0 15px rgba(52, 152, 219, 0.5);
+        }
+        
+        .time-select:disabled {
+            background: #ecf0f1;
+            color: #bdc3c7;
+            border-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+        
+        .records-container {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+        }
+        
+        .records-container h3 {
+            margin: 0 0 15px 0;
+            color: #2c3e50;
+            font-size: 18px;
+            text-align: center;
+        }
+        
+        .records-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .record-item {
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .record-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .record-item.current {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .record-time {
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        
+        .record-score {
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .record-item.current .record-score {
+            color: #f9ca24;
+        }
+        
+        .no-record {
+            color: #6c757d;
+            font-style: italic;
+        }
+        
+        .timer {
+            font-size: 18px;
+            color: #7f8c8d;
+            margin: 10px 0;
+        }
+        
+        .game-timer {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px 40px;
+            border-radius: 50px;
+            font-size: 48px;
+            font-weight: bold;
+            z-index: 1000;
+            transition: all 0.3s ease;
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .game-timer.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        .game-timer.warning {
+            background: rgba(231, 76, 60, 0.9);
+            animation: pulse-warning 1s infinite;
+        }
+        
+        .game-timer.countdown {
+            background: rgba(231, 76, 60, 0.95);
+            font-size: 120px;
+            padding: 40px 80px;
+            border-radius: 100px;
+            animation: countdown-pulse 0.5s infinite;
+            z-index: 10000;
+        }
+        
+        @keyframes pulse-warning {
+            0% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.1); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+        
+        @keyframes countdown-pulse {
+            0% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.2); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+        
+        .start-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        
+        .start-btn:hover {
+            background: #2980b9;
+        }
+        
+        .start-btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+        
+        .game-over {
+            font-size: 28px;
+            font-weight: bold;
+            color: #e74c3c;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container" id="gameContainer">
+        <h1>🎯 Rapidité cliker</h1>
+        <p>Cliquez sur la cible rouge le plus rapidement possible !</p>
+        
+        <div class="score">Score: <span id="score">0</span></div>
+        
+        <div class="time-selector">
+            <label for="timeSelect">Durée du jeu :</label>
+            <select id="timeSelect" class="time-select">
+                <option value="5">5 secondes</option>
+                <option value="10">10 secondes</option>
+                <option value="15">15 secondes</option>
+                <option value="20">20 secondes</option>
+                <option value="25">25 secondes</option>
+                <option value="30" selected>30 secondes</option>
+                <option value="35">35 secondes</option>
+                <option value="40">40 secondes</option>
+                <option value="45">45 secondes</option>
+                <option value="50">50 secondes</option>
+                <option value="55">55 secondes</option>
+                <option value="60">60 secondes</option>
+            </select>
+        </div>
+        
+        <div class="timer">Temps restant: <span id="timer">30</span>s</div>
+        
+        <div class="records-container">
+            <h3>🏆 Records par durée</h3>
+            <div class="records-grid" id="recordsGrid">
+                <!-- Les records seront générés dynamiquement -->
+            </div>
+        </div>
+        
+        <button id="startBtn" class="start-btn">Commencer le Jeu</button>
+        
+        <div id="target" class="target" style="display: none;"></div>
+        
+        <div id="gameOver" class="game-over" style="display: none;"></div>
+    </div>
+    
+    <!-- Timer en mode jeu -->
+    <div class="game-timer" id="gameTimer">
+        <span id="gameTimerText">30</span>s
+    </div>
+    
+    <!-- Sons du jeu -->
+    <audio id="hitSound" preload="auto">
+        <source src="data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjIwLjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAAFbgBtbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1t//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjM1AAAAAAAAAAAAAAAAJAYAAAAAAAAABW4A//sQZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//sQZB4P8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAEVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV" type="audio/mpeg">
+    </audio>
+    
+    <audio id="gameStartSound" preload="auto">
+        <source src="data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjIwLjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAAFbgBtbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1t//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjM1AAAAAAAAAAAAAAAAJAYAAAAAAAAABW4A//sQZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//sQZB4P8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAEVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV" type="audio/mpeg">
+    </audio>
+    
+    <audio id="gameEndSound" preload="auto">
+        <source src="data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjIwLjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAAFbgBtbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1tbW1t//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjM1AAAAAAAAAAAAAAAAJAYAAAAAAAAABW4A//sQZAAP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//sQZB4P8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAEVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV" type="audio/mpeg">
+    </audio>
+
+    <script>
+        let score = 0;
+        let timeLeft = 30;
+        let gameInterval;
+        let timerInterval;
+        let isGameRunning = false;
+
+        const startBtn = document.getElementById('startBtn');
+        const target = document.getElementById('target');
+        const scoreElement = document.getElementById('score');
+        const timerElement = document.getElementById('timer');
+        const gameOverElement = document.getElementById('gameOver');
+        const timeSelect = document.getElementById('timeSelect');
+        const recordsGrid = document.getElementById('recordsGrid');
+        const gameContainer = document.getElementById('gameContainer');
+        const gameTimer = document.getElementById('gameTimer');
+        const gameTimerText = document.getElementById('gameTimerText');
+        
+        // Sons du jeu
+        const hitSound = document.getElementById('hitSound');
+        const gameStartSound = document.getElementById('gameStartSound');
+        const gameEndSound = document.getElementById('gameEndSound');
+        
+        // Système de records
+        let records = JSON.parse(localStorage.getItem('gameRecords')) || {};
+        
+        // Charger les voix de synthèse
+        let voicesLoaded = false;
+        function loadVoices() {
+            if (voicesLoaded) return;
+            speechSynthesis.getVoices();
+            voicesLoaded = true;
+        }
+        
+        // Charger les voix au démarrage
+        if ('speechSynthesis' in window) {
+            speechSynthesis.onvoiceschanged = loadVoices;
+            loadVoices();
+        }
+
+        startBtn.addEventListener('click', startGame);
+        target.addEventListener('click', hitTarget);
+        timeSelect.addEventListener('change', updateTimerDisplay);
+        
+        // Fonction pour créer un son simple
+        function createBeep(frequency, duration) {
+            if (!soundEnabled) return;
+            
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = frequency;
+                oscillator.type = 'sine';
+                
+                gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + duration);
+                
+                console.log(`🔊 Son joué: ${frequency}Hz pendant ${duration}s`);
+            } catch (e) {
+                console.log('Erreur création son:', e);
+                // Fallback vers l'audio HTML
+                try {
+                    audioElement.currentTime = 0;
+                    audioElement.play().catch(e => console.log('Son HTML non joué:', e));
+                } catch (e2) {
+                    console.log('Erreur son HTML:', e2);
+                }
+            }
+        }
+        
+        // Fonction pour jouer un son
+        function playSound(audioElement) {
+            if (!soundEnabled) return;
+            
+            try {
+                audioElement.currentTime = 0;
+                audioElement.play().catch(e => console.log('Son non joué:', e));
+            } catch (e) {
+                console.log('Erreur son:', e);
+            }
+        }
+
+        function startGame() {
+            console.log('🚀 Démarrage du jeu...');
+            
+            score = 0;
+            timeLeft = parseInt(timeSelect.value);
+            isGameRunning = true;
+            
+            // Activer le mode jeu
+            gameContainer.classList.add('game-mode');
+            gameTimer.classList.add('visible');
+            gameTimerText.textContent = timeLeft;
+            
+            startBtn.disabled = true;
+            startBtn.textContent = 'Jeu en cours...';
+            timeSelect.disabled = true;
+            gameOverElement.style.display = 'none';
+            
+            // CRÉER UNE NOUVELLE CIBLE
+            const newTarget = document.createElement('div');
+            newTarget.id = 'gameTarget';
+            
+            // Choisir une forme aléatoire pour la cible initiale
+            const shapes = [
+                { name: 'circle', style: 'border-radius: 50%' },
+                { name: 'square', style: 'border-radius: 0' },
+                { name: 'triangle', style: 'border-radius: 0; clip-path: polygon(50% 0%, 0% 100%, 100% 100%)' },
+                { name: 'star', style: 'border-radius: 0; clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)' },
+                { name: 'diamond', style: 'border-radius: 0; clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)' },
+                { name: 'hexagon', style: 'border-radius: 0; clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)' }
+            ];
+            const randomShape = shapes[Math.floor(Math.random() * shapes.length)];
+            
+            // Choisir une couleur aléatoire
+            const colors = ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'cyan', 'lime', 'brown'];
+            const randomColor = colors[Math.floor(Math.random() * colors.length)];
+            
+            // Appliquer les styles de base
+            newTarget.style.cssText = `
+                position: fixed !important;
+                top: 50% !important;
+                left: 50% !important;
+                transform: translate(-50%, -50%) !important;
+                width: 100px !important;
+                height: 100px !important;
+                background: ${randomColor} !important;
+                z-index: 999999 !important;
+                cursor: pointer !important;
+                display: block !important;
+            `;
+            
+            // Appliquer la forme
+            if (randomShape.name === 'circle') {
+                newTarget.style.borderRadius = '50%';
+            } else if (randomShape.name === 'square') {
+                newTarget.style.borderRadius = '0';
+            } else {
+                newTarget.style.clipPath = randomShape.style.split('clip-path: ')[1].split(';')[0];
+            }
+            
+            // Supprimer l'ancienne cible si elle existe
+            const oldTarget = document.getElementById('gameTarget');
+            if (oldTarget) {
+                oldTarget.remove();
+            }
+            
+            // Ajouter la nouvelle cible au body
+            document.body.appendChild(newTarget);
+            
+            // Ajouter l'événement de clic
+            newTarget.addEventListener('click', hitTarget);
+            
+            console.log(`🎯 NOUVELLE CIBLE CRÉÉE ! Forme: ${randomShape.name}, Couleur: ${randomColor}`);
+            
+            // Jouer le son de démarrage
+            createBeep(800, 0.3);
+            
+            updateScore();
+            updateTimer();
+            
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimer();
+                
+                if (timeLeft <= 0) {
+                    endGame();
+                }
+            }, 1000);
+        }
+        
+
+
+        function hitTarget() {
+            if (!isGameRunning) return;
+            
+            console.log('🎯 Cible cliquée !');
+            
+            // Jouer le son de hit
+            createBeep(1000, 0.1);
+            
+            score++;
+            updateScore();
+            
+            // Récupérer la cible actuelle
+            const currentTarget = document.getElementById('gameTarget');
+            if (!currentTarget) return;
+            
+            // Déplacer la cible aléatoirement
+            const targetSize = parseInt(currentTarget.style.width) || 100;
+            const maxX = window.innerWidth - targetSize;
+            const maxY = window.innerHeight - targetSize;
+            const newX = Math.random() * maxX;
+            const newY = Math.random() * maxY;
+            
+            currentTarget.style.left = newX + 'px';
+            currentTarget.style.top = newY + 'px';
+            currentTarget.style.transform = 'none';
+            
+            // Changer la taille aléatoirement (entre 60px et 140px)
+            const minSize = 60;
+            const maxSize = 140;
+            const randomSize = Math.floor(Math.random() * (maxSize - minSize + 1)) + minSize;
+            
+            currentTarget.style.width = randomSize + 'px';
+            currentTarget.style.height = randomSize + 'px';
+            
+            // Changer la forme aléatoirement
+            const shapes = [
+                { name: 'circle', style: 'border-radius: 50%' },
+                { name: 'square', style: 'border-radius: 0' },
+                { name: 'triangle', style: 'border-radius: 0; clip-path: polygon(50% 0%, 0% 100%, 100% 100%)' },
+                { name: 'star', style: 'border-radius: 0; clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)' },
+                { name: 'diamond', style: 'border-radius: 0; clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)' },
+                { name: 'hexagon', style: 'border-radius: 0; clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)' }
+            ];
+            const randomShape = shapes[Math.floor(Math.random() * shapes.length)];
+            
+            // Appliquer la nouvelle forme
+            currentTarget.style.borderRadius = '0';
+            currentTarget.style.clipPath = 'none';
+            
+            if (randomShape.name === 'circle') {
+                currentTarget.style.borderRadius = '50%';
+            } else if (randomShape.name === 'square') {
+                currentTarget.style.borderRadius = '0';
+            } else {
+                // Pour les formes avec clip-path
+                currentTarget.style.clipPath = randomShape.style.split('clip-path: ')[1].split(';')[0];
+            }
+            
+            // Changer la couleur aléatoirement
+            const colors = [
+                'red',
+                'blue',
+                'green',
+                'yellow',
+                'purple',
+                'orange',
+                'pink',
+                'cyan',
+                'lime',
+                'brown'
+            ];
+            const randomColor = colors[Math.floor(Math.random() * colors.length)];
+            currentTarget.style.background = randomColor;
+            
+            console.log(`🎯 Cible déplacée et modifiée ! Forme: ${randomShape.name}, Couleur: ${randomColor}`);
+        }
+
+        function updateScore() {
+            scoreElement.textContent = score;
+        }
+
+        function updateTimer() {
+            timerElement.textContent = timeLeft;
+            gameTimerText.textContent = timeLeft;
+            
+            // Gestion du compte à rebours final (3, 2, 1)
+            if (timeLeft <= 3 && timeLeft >= 1) {
+                gameTimer.classList.add('countdown');
+                gameTimer.classList.remove('warning');
+                
+                // Synthèse vocale pour le compte à rebours (s'arrête à 1)
+                if ('speechSynthesis' in window) {
+                    const utterance = new SpeechSynthesisUtterance(timeLeft.toString());
+                    utterance.lang = 'fr-FR';
+                    utterance.rate = 0.8; // Vitesse adaptée pour synchroniser avec le timer
+                    utterance.volume = 1;
+                    utterance.pitch = 0.001; // Pitch ultra-minimal pour une voix caverneuse extrême
+                    
+                    // Sélectionner une voix d'homme grave si disponible
+                    const voices = speechSynthesis.getVoices();
+                    const maleVoice = voices.find(voice => 
+                        voice.lang.includes('fr') && 
+                        (voice.name.toLowerCase().includes('homme') || 
+                         voice.name.toLowerCase().includes('male') ||
+                         voice.name.toLowerCase().includes('pierre') ||
+                         voice.name.toLowerCase().includes('thomas') ||
+                         voice.name.toLowerCase().includes('david') ||
+                         voice.name.toLowerCase().includes('jean') ||
+                         voice.name.toLowerCase().includes('michel'))
+                    );
+                    
+                    if (maleVoice) {
+                        utterance.voice = maleVoice;
+                    }
+                    
+                    speechSynthesis.speak(utterance);
+                }
+                
+                // Son spécial pour le compte à rebours
+                createBeep(600 - (timeLeft * 100), 0.2);
+            } else if (timeLeft <= 5) {
+                gameTimer.classList.add('warning');
+                gameTimer.classList.remove('countdown');
+            } else {
+                gameTimer.classList.remove('warning');
+                gameTimer.classList.remove('countdown');
+            }
+        }
+
+        function endGame() {
+            isGameRunning = false;
+            
+            // Nettoyer les classes CSS du timer
+            gameTimer.classList.remove('warning');
+            gameTimer.classList.remove('countdown');
+            clearInterval(timerInterval);
+            
+            // Jouer le son de fin de jeu
+            createBeep(400, 0.5);
+            
+            // Désactiver le mode jeu
+            gameContainer.classList.remove('game-mode');
+            gameTimer.classList.remove('visible', 'warning');
+            
+            startBtn.disabled = false;
+            startBtn.textContent = 'Recommencer';
+            timeSelect.disabled = false;
+            
+            // Supprimer la cible du jeu
+            const gameTarget = document.getElementById('gameTarget');
+            if (gameTarget) {
+                gameTarget.remove();
+            }
+            
+            // Sauvegarder le record
+            const currentTime = timeSelect.value;
+            const isNewRecord = saveRecord(currentTime, score);
+            
+            let gameOverMessage = `Partie terminée ! Score final: ${score}`;
+            if (isNewRecord) {
+                gameOverMessage += ` 🏆 NOUVEAU RECORD !`;
+            }
+            
+            gameOverElement.textContent = gameOverMessage;
+            gameOverElement.style.display = 'block';
+        }
+        
+        function updateTimerDisplay() {
+            if (!isGameRunning) {
+                timerElement.textContent = timeSelect.value;
+                updateRecordsDisplay();
+            }
+        }
+        
+        // Fonction pour sauvegarder un record
+        function saveRecord(time, score) {
+            if (!records[time] || score > records[time]) {
+                records[time] = score;
+                localStorage.setItem('gameRecords', JSON.stringify(records));
+                updateRecordsDisplay();
+                return true; // Nouveau record
+            }
+            return false; // Pas de nouveau record
+        }
+        
+        // Fonction pour afficher les records
+        function updateRecordsDisplay() {
+            const timeOptions = ['5', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55', '60'];
+            const currentTime = timeSelect.value;
+            
+            recordsGrid.innerHTML = '';
+            
+            timeOptions.forEach(time => {
+                const recordItem = document.createElement('div');
+                recordItem.className = 'record-item';
+                
+                if (time === currentTime) {
+                    recordItem.classList.add('current');
+                }
+                
+                const recordScore = records[time] || 0;
+                const isNewRecord = time === currentTime && recordScore > 0;
+                
+                recordItem.innerHTML = `
+                    <div class="record-time">${time}s</div>
+                    <div class="record-score">
+                        ${recordScore > 0 ? recordScore : '<span class="no-record">Aucun</span>'}
+                        ${isNewRecord ? ' 🏆' : ''}
+                    </div>
+                `;
+                
+                recordsGrid.appendChild(recordItem);
+            });
+        }
+
+        // Initialiser l'affichage des records
+        updateRecordsDisplay();
+        
+        // Test automatique pour démonstration
+        console.log('🎮 Jeu HTML chargé avec succès !');
+        console.log('📊 Fonctions de test disponibles :');
+        console.log('- startGame() : Démarrer le jeu');
+        console.log('- hitTarget() : Simuler un clic sur la cible');
+        console.log('- endGame() : Terminer le jeu');
+        console.log('- updateRecordsDisplay() : Mettre à jour l\'affichage des records');
+        console.log('- resetRecords() : Réinitialiser tous les records');
+        console.log('- showTarget() : Forcer l\'affichage de la cible');
+        console.log('- debugTarget() : Diagnostiquer la cible');
+        console.log('- testTarget() : Test simple de la cible');
+        console.log('- forceStart() : Forcer le démarrage du jeu');
+        console.log('- checkTarget() : Vérifier si la cible existe');
+        console.log('- testSound() : Tester les sons');
+        console.log('- testBeep() : Tester différents sons');
+        console.log('- toggleSound() : Activer/désactiver les sons');
+        
+        // Fonction pour tester différents sons
+        window.testBeep = function() {
+            console.log('🔊 Test de différents sons...');
+            createBeep(200, 0.2);  // Grave
+            setTimeout(() => createBeep(400, 0.2), 300);
+            setTimeout(() => createBeep(600, 0.2), 600);
+            setTimeout(() => createBeep(800, 0.2), 900);
+            setTimeout(() => createBeep(1000, 0.2), 1200);
+            console.log('✅ Sons de test joués !');
+        };
+        
+        // Variable pour contrôler le son
+        let soundEnabled = true;
+        
+        // Fonction pour vérifier si la cible existe
+        window.checkTarget = function() {
+            const gameTarget = document.getElementById('gameTarget');
+            const testTarget = document.getElementById('testTarget');
+            
+            console.log('🔍 Vérification des cibles :');
+            console.log('- Cible de jeu (gameTarget):', gameTarget ? 'EXISTE' : 'N\'EXISTE PAS');
+            console.log('- Cible de test (testTarget):', testTarget ? 'EXISTE' : 'N\'EXISTE PAS');
+            console.log('- Cible originale (target):', target ? 'EXISTE' : 'N\'EXISTE PAS');
+            
+            if (gameTarget) {
+                console.log('- Style de gameTarget:', gameTarget.style.cssText);
+            }
+        };
+        
+        // Fonction pour tester les sons
+        window.testSound = function() {
+            console.log('🔊 Test des sons...');
+            createBeep(1000, 0.1); // Son de hit
+            setTimeout(() => {
+                createBeep(800, 0.3); // Son de démarrage
+            }, 200);
+            setTimeout(() => {
+                createBeep(400, 0.5); // Son de fin
+            }, 600);
+            console.log('✅ Sons testés !');
+        };
+        
+        // Fonction pour activer/désactiver les sons
+        window.toggleSound = function() {
+            soundEnabled = !soundEnabled;
+            console.log(`🔊 Son ${soundEnabled ? 'ACTIVÉ' : 'DÉSACTIVÉ'} !`);
+        };
+        
+        // Fonction pour forcer le démarrage du jeu
+        window.forceStart = function() {
+            console.log('🚀 Démarrage forcé du jeu...');
+            
+            score = 0;
+            timeLeft = 30;
+            isGameRunning = true;
+            
+            // Afficher la cible immédiatement
+            target.style.display = 'block';
+            target.style.position = 'fixed';
+            target.style.top = '50%';
+            target.style.left = '50%';
+            target.style.transform = 'translate(-50%, -50%)';
+            target.style.width = '100px';
+            target.style.height = '100px';
+            target.style.background = 'red';
+            target.style.zIndex = '99999';
+            target.style.borderRadius = '50%';
+            
+            console.log('🎯 Jeu forcé démarré !');
+            
+            updateScore();
+            updateTimer();
+            
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimer();
+                
+                if (timeLeft <= 0) {
+                    endGame();
+                }
+            }, 1000);
+        };
+        
+        // Fonction de test ultra-simple
+        window.testTarget = function() {
+            console.log('🧪 Test ultra-simple de la cible...');
+            
+            // Choisir une forme aléatoire
+            const shapes = [
+                { name: 'circle', style: 'border-radius: 50%' },
+                { name: 'square', style: 'border-radius: 0' },
+                { name: 'triangle', style: 'border-radius: 0; clip-path: polygon(50% 0%, 0% 100%, 100% 100%)' },
+                { name: 'star', style: 'border-radius: 0; clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)' },
+                { name: 'diamond', style: 'border-radius: 0; clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)' },
+                { name: 'hexagon', style: 'border-radius: 0; clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)' }
+            ];
+            const randomShape = shapes[Math.floor(Math.random() * shapes.length)];
+            
+            // Choisir une couleur aléatoire
+            const colors = ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'cyan', 'lime', 'brown'];
+            const randomColor = colors[Math.floor(Math.random() * colors.length)];
+            
+            // Créer une cible de test
+            const testTarget = document.createElement('div');
+            testTarget.id = 'testTarget';
+            testTarget.style.cssText = `
+                position: fixed !important;
+                top: 50% !important;
+                left: 50% !important;
+                transform: translate(-50%, -50%) !important;
+                width: 100px !important;
+                height: 100px !important;
+                background: ${randomColor} !important;
+                z-index: 999999 !important;
+                cursor: pointer !important;
+                display: block !important;
+            `;
+            
+            // Appliquer la forme
+            if (randomShape.name === 'circle') {
+                testTarget.style.borderRadius = '50%';
+            } else if (randomShape.name === 'square') {
+                testTarget.style.borderRadius = '0';
+            } else {
+                testTarget.style.clipPath = randomShape.style.split('clip-path: ')[1].split(';')[0];
+            }
+            
+            // Ajouter au body
+            document.body.appendChild(testTarget);
+            
+            console.log(`🎯 Cible de test créée ! Forme: ${randomShape.name}, Couleur: ${randomColor}`);
+            
+            // Supprimer après 3 secondes
+            setTimeout(() => {
+                testTarget.remove();
+                console.log('🎯 Cible de test supprimée !');
+            }, 3000);
+        };
+        
+        // Fonction pour forcer l'affichage de la cible
+        window.showTarget = function() {
+            target.style.display = 'block';
+            target.style.position = 'fixed';
+            target.style.top = '50%';
+            target.style.left = '50%';
+            target.style.transform = 'translate(-50%, -50%)';
+            target.style.width = '100px';
+            target.style.height = '100px';
+            target.style.background = 'radial-gradient(circle, #ff6b6b, #ee5a24)';
+            target.style.zIndex = '9999';
+            console.log('🎯 Cible forcée à l\'affichage !');
+        };
+        
+        // Fonction pour diagnostiquer le problème
+        window.debugTarget = function() {
+            console.log('🔍 Diagnostic de la cible :');
+            console.log('- Élément target:', target);
+            console.log('- Display:', target.style.display);
+            console.log('- Position:', target.style.position);
+            console.log('- Top:', target.style.top);
+            console.log('- Left:', target.style.left);
+            console.log('- Width:', target.style.width);
+            console.log('- Height:', target.style.height);
+            console.log('- Background:', target.style.background);
+            console.log('- Z-index:', target.style.zIndex);
+            console.log('- Classes:', target.className);
+            console.log('- Jeu en cours:', isGameRunning);
+        };
+        
+        // Fonction pour réinitialiser les records
+        window.resetRecords = function() {
+            records = {};
+            localStorage.removeItem('gameRecords');
+            updateRecordsDisplay();
+            console.log('🗑️ Tous les records ont été réinitialisés !');
+        };
+        
+        // Charger les tests automatisés
+        const script = document.createElement('script');
+        script.src = 'test.js';
+        document.head.appendChild(script);
+    </script>
+</body>
+</html> 
